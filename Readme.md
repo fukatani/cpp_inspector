@@ -7,28 +7,27 @@ Most rules are based on Google C++ Coding style (https://google.github.io/styleg
 #### Feature
 
 - Class
-- Class name should be camel case.
-- Data member should be private.
-- Class methods should be named like `YourFucntion`, excepts getter/setter.
+- - Class name should be camel case.
+- - Data member should be private.
+- - Class methods should be named like `YourClass`, excepts getter/setter.
 
 - Variables
-- Variables which are assigned once should be `const`.
-- Variables which are assigned once and literal is assigned should be `constexpr`.
-- Local Variables should be named like `local_variable`.
-- Class Variables should be named like `class_variable_`.
-- Disallow class type global variables.
+- - Variables which are assigned once should be `const`.
+- - Variables which are assigned once and literal is assigned should be `constexpr`.
+- - Local Variables should be named like `local_variable`.
+- - Class Variables should be named like `class_variable_`.
+- - Disallow class type global variables.
 
 - Functions
-- Functions should be named like `YourFucntion`.
-- Reference arguments should be `const`.
-- Output arguments should be located last.
+- - Functions should be named like `YourFucntion`.
+- - Reference arguments should be `const`.
+- - Output arguments should be located last.
 
 - Other
-- Disallow cstyle cast.
-- Disallow sizeof(datatype).
-- Iteretor should be increment by `++iter`, not `iter++`.
-- Raw pointers not should be allocated by new. You should use `std::unique_ptr` or other smart pointer.
-/グローバル変数命名規則
+- - Disallow cstyle cast.
+- - Disallow sizeof(datatype).
+- - Iteretor should be increment by `++iter`, not `iter++`.
+- - Raw pointers not should be allocated by new. You should use `std::unique_ptr` or other smart pointer.
 
 
 #### Install
@@ -62,7 +61,7 @@ svn co http://llvm.org/svn/llvm-project/clang-tools-extra/trunk extra
 cd ../..
 mkdir build
 cd build
-cmake -G "Unix Makefiles" ..
+cmake -G "Unix Makefiles" ../llvm
 make
 ```
 

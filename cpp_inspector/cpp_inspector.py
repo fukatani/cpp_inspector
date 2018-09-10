@@ -13,6 +13,13 @@ def print_node_tree(node):
         print_node_tree(child)
 
 
+def walk_tree(node):
+    print("yield", node.kind.name, node.displayname, node.spelling, node.linkage, node.mangled_name,
+          node.type)
+    for child in node.get_children():
+        yield from walk_tree(child)
+    yield node
+
 class RuleBase(object):
 
     def __init__(self):
@@ -21,7 +28,8 @@ class RuleBase(object):
 
     def check_all_rules(self, ast):
         for check_method in self.check_methods:
-            check_method(ast)
+            for elem in self.iter_for_all_element(ast):
+                check_method(elem)
 
     def iter_for_all_element(self, ast):
         raise NotImplementedError()
@@ -117,14 +125,14 @@ class FieldRule(RuleBase):
         self.check_methods.append(self.check_naming)
 
     def iter_for_all_element(self, ast):
-        for elem in ast:
-            if 'FieldDecl' in elem:
+        for elem in walk_tree(ast):
+            if elem.kind.name == 'FIELD_DECL':
                 yield elem
 
     def check_naming(self, elem):
-        if elem.lower() != elem.lower():
+        if elem.displayname.lower() != elem.displayname.lower():
             self.errors.append(elem)
-        if not elem.endswith('_'):
+        if not elem.displayname.endswith('_'):
             self.errors.append(elem)
 
 
@@ -157,19 +165,18 @@ class LocalVarialeRule(RuleBase):
         self.check_methods.append(self.check_naming)
 
     def iter_for_all_element(self, ast):
-        for elem in ast:
-            if 'VarDecl' in elem:
+        for elem in walk_tree(ast):
+            if elem.kind.name == 'VAR_DECL':
                 yield elem
 
     def check_naming(self, elem):
         if 'const' and 'constexpr':
-            if elem.name[0].upper() == elem.name[0]:
+            if elem.kind.name.upper() == elem.kind.name:
                 self.errors.append(elem)
         else:
-            if elem.lower() != elem.lower():
+            if elem.kind.name.lower() != elem.kind.name.lower():
                 self.errors.append(elem)
-
-        if not elem.endswith('_'):
+        if elem.kind.name.endswith('_'):
             self.errors.append(elem)
 
 
@@ -180,14 +187,15 @@ class UnaryOperatorRule(RuleBase):
         self.check_methods.append(self.check_prefix)
 
     def iter_for_all_element(self, ast):
-        for elem in ast:
-            if 'UnaryOperator' in elem:
+        for elem in walk_tree(ast):
+            if elem.kind.name == 'UNARY_OPERATOR':
                 yield elem
 
     def check_prefix(self, elem):
         if "prefix '++'":
-            if elem.lvalue == 'int' or elem.lvalue == 'size_t':
-                self.elem.append(elem)
+            type_name = list(elem.get_children())[0].type.kind.name
+            if type_name not in ('INT', 'SIZE_T'):
+                self.errors.append(elem)
 
 
 class UnaryExprOrTypeTraitExprRule(RuleBase):
@@ -197,13 +205,14 @@ class UnaryExprOrTypeTraitExprRule(RuleBase):
         self.check_methods.append(self.check_cast_target)
 
     def iter_for_all_element(self, ast):
-        for elem in ast:
-            if 'UnaryExprOrTypeTraitExpr' in elem:
+        for elem in walk_tree(ast):
+            if elem.kind.name == 'CXX_UNARY_EXPR':
                 yield elem
 
     def check_cast_target(self, elem):
-        if elem.sizeof == 'int':
-            self.elem.append(elem)
+        target = list(elem.get_children())
+        if not target:
+            self.errors.append(elem)
 
 
 class CStyleCastExprRule(RuleBase):
@@ -213,24 +222,30 @@ class CStyleCastExprRule(RuleBase):
         self.check_methods.append(self.check_cstylecast)
 
     def iter_for_all_element(self, ast):
-        for elem in ast:
-            if 'CStyleCastExpr' in elem:
+        for elem in walk_tree(ast):
+            if elem.kind.name == 'CSTYLE_CAST_EXPR':
                 yield elem
 
     def check_cstylecast(self, elem):
-        self.append(elem)
+        self.errors.append(elem)
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: ./cpp_inspector.py your_code.cpp")
     index = Index.create()
+    print(sys.argv[1])
     tu = index.parse(sys.argv[1])
-    print_node_tree(tu.cursor)
-    rule_classes = (ClassRule, FunctionRule, FieldRule, GlovalVariableRule,
-             LocalVarialeRule, UnaryOperatorRule, UnaryExprOrTypeTraitExprRule,
-             CStyleCastExprRule)
+    # print_node_tree(tu.cursor)
+    # rule_classes = (ClassRule, FunctionRule, FieldRule, GlovalVariableRule,
+    #          LocalVarialeRule, UnaryOperatorRule, UnaryExprOrTypeTraitExprRule,
+    #          CStyleCastExprRule)
+    rule_classes = (# LocalVarialeRule,
+                    FieldRule, CStyleCastExprRule, UnaryExprOrTypeTraitExprRule,
+                    )
     for rule_class in rule_classes:
         rule = rule_class()
         rule.check_all_rules(tu.cursor)
-        print(rule.errors)
+        print("errors:")
+        for error in rule.errors:
+            print(error.kind.name, error.displayname, error.extent)
