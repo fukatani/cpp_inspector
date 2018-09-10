@@ -1,4 +1,4 @@
-#include <memory>
+//#include <memory>
 // #include <stdio.h>
 
 class Object {
@@ -7,6 +7,7 @@ class Object {
   int cc_ = 0;
  private:
   int dd_ = 0;
+  int ee = 0;
 };
 
 int DekkaiFunc(int a, const double c, const double& d, double* out) {
@@ -20,7 +21,7 @@ void Get(double* out) {
 int global_var = 9;
 
 int main() {
-  int a = 1;
+  const int a = 1;
   double c = (double)2.2;
   c = c + 1;
   Get(&c);
@@ -33,7 +34,7 @@ int main() {
   int at = sizeof(a);
   int bt = sizeof(int);
   constexpr int con = 9;
-  const int cong = 9;
+  int cong = 9;
 
   int *p1;
   p1 = new int(10);  

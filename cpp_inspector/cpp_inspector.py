@@ -1,24 +1,16 @@
 #!/usr/bin/env python3
 
+import re
+import subprocess
 import sys
-
-import clang.cindex
-from clang.cindex import Index
-from clang.cindex import Config
-
-
-def print_node_tree(node):
-    print("%s : %s" % (node.kind.name, node.displayname))
-    for child in node.get_children():
-        print_node_tree(child)
 
 
 def walk_tree(node):
-    print("yield", node.kind.name, node.displayname, node.spelling, node.linkage, node.mangled_name,
-          node.type)
+    # print("yield", node.kind, node.displayname)
     for child in node.get_children():
         yield from walk_tree(child)
     yield node
+
 
 class RuleBase(object):
 
@@ -71,8 +63,8 @@ class FunctionRule(RuleBase):
         self.check_methods.append(self.check_arguments_order)
 
     def iter_for_all_element(self, ast):
-        for elem in ast:
-            if 'FunctionDecl' in elem:
+        for elem in walk_tree(ast):
+            if elem.kind == 'FunctionDecl':
                 yield elem
 
     def check_naming(self, elem):
@@ -83,14 +75,14 @@ class FunctionRule(RuleBase):
 
     def check_const(self, elem):
         var_list = []
-        for elem2 in elem:
+        for elem2 in elem.get_children():
             if elem == 'VarDecl' and elem != 'const':
                 var_list.append(elem2)
         reassignment_list = []
-        for elem2 in elem:
+        for elem2 in elem.get_children():
             if elem == 'DeclRefExpr':
                 reassignment_list.append(elem2)
-        for elem2 in elem:
+        for elem2 in elem.get_children():
             if elem2 == 'CallExpr':
                 if elem2.arg == 'RefExpr':
                     reassignment_list.append(elem2)
@@ -126,7 +118,7 @@ class FieldRule(RuleBase):
 
     def iter_for_all_element(self, ast):
         for elem in walk_tree(ast):
-            if elem.kind.name == 'FIELD_DECL':
+            if elem.kind == 'FieldDecl':
                 yield elem
 
     def check_naming(self, elem):
@@ -166,17 +158,17 @@ class LocalVarialeRule(RuleBase):
 
     def iter_for_all_element(self, ast):
         for elem in walk_tree(ast):
-            if elem.kind.name == 'VAR_DECL':
+            if elem.kind == 'VarDecl':
                 yield elem
 
     def check_naming(self, elem):
         if 'const' and 'constexpr':
-            if elem.kind.name.upper() == elem.kind.name:
+            if elem.kind.upper() == elem.kind:
                 self.errors.append(elem)
         else:
-            if elem.kind.name.lower() != elem.kind.name.lower():
+            if elem.kind.lower() != elem.kind.lower():
                 self.errors.append(elem)
-        if elem.kind.name.endswith('_'):
+        if elem.kind.endswith('_'):
             self.errors.append(elem)
 
 
@@ -188,13 +180,12 @@ class UnaryOperatorRule(RuleBase):
 
     def iter_for_all_element(self, ast):
         for elem in walk_tree(ast):
-            if elem.kind.name == 'UNARY_OPERATOR':
+            if elem.kind == 'UnaryOperator':
                 yield elem
 
     def check_prefix(self, elem):
-        if "prefix '++'":
-            type_name = list(elem.get_children())[0].type.kind.name
-            if type_name not in ('INT', 'SIZE_T'):
+        if elem.displayname == "postfix '++'":
+            if elem.type not in ("'int'", "'size_T'"):
                 self.errors.append(elem)
 
 
@@ -206,7 +197,7 @@ class UnaryExprOrTypeTraitExprRule(RuleBase):
 
     def iter_for_all_element(self, ast):
         for elem in walk_tree(ast):
-            if elem.kind.name == 'CXX_UNARY_EXPR':
+            if elem.kind == 'UnaryExprOrTypeTraitExpr':
                 yield elem
 
     def check_cast_target(self, elem):
@@ -223,29 +214,77 @@ class CStyleCastExprRule(RuleBase):
 
     def iter_for_all_element(self, ast):
         for elem in walk_tree(ast):
-            if elem.kind.name == 'CSTYLE_CAST_EXPR':
+            if elem.kind == 'CStyleCastExpr':
                 yield elem
 
     def check_cstylecast(self, elem):
         self.errors.append(elem)
 
 
+class Node(object):
+    def __init__(self, line):
+        words = line.split()
+        self.kind = words[0]
+        if self.kind == 'FieldDecl':
+            self.displayname = words[-2]
+            self.type = words[-1]
+        elif self.kind == 'UnaryOperator':
+            self.displayname = ' '.join(words[-2:])
+            self.type = words[-3]
+            print(self.displayname, self.type)
+        else:
+            self.displayname = ' '.join(words[1:])
+        self.children = []
+
+    def get_children(self):
+        return self.children
+
+    def add_children(self, node):
+        self.children.append(node)
+
+
+def make_tree(output):
+    output = output.split("\n")
+    for i, line in enumerate(output):
+        if line.startswith("TranslationUnitDecl"):
+            line_num = i
+            break
+
+    new_tree_ref_dict = {}
+    root = Node(line)
+    new_tree_ref_dict[0] = root
+    for line in output[line_num + 1:]:
+        # print(line)
+        match = re.search(r'[A-Z]+', line)
+
+        if match:
+            # print(match.start())
+            cur_nest = match.start() // 2
+            assert cur_nest > 0
+            cur_node = Node(line[match.start():])
+            new_tree_ref_dict[cur_nest - 1].add_children(cur_node)
+            new_tree_ref_dict[cur_nest] = cur_node
+    return root
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: ./cpp_inspector.py your_code.cpp")
-    index = Index.create()
     print(sys.argv[1])
-    tu = index.parse(sys.argv[1])
-    # print_node_tree(tu.cursor)
-    # rule_classes = (ClassRule, FunctionRule, FieldRule, GlovalVariableRule,
-    #          LocalVarialeRule, UnaryOperatorRule, UnaryExprOrTypeTraitExprRule,
-    #          CStyleCastExprRule)
-    rule_classes = (# LocalVarialeRule,
-                    FieldRule, CStyleCastExprRule, UnaryExprOrTypeTraitExprRule,
-                    )
+    # rule_classes = (ClassRule, GlovalVariableRule,
+    #          LocalVarialeRule)
+    command = ("clang", "-Xclang", "-ast-dump", "-fno-diagnostics-color", sys.argv[1])
+    try:
+        dump_result = subprocess.check_output(command)#, stderr=subprocess.DEVNULL)
+    except subprocess.CalledProcessError as e:
+        dump_result = e.output
+    tree = make_tree(dump_result.decode())
+
+    rule_classes = (FieldRule, CStyleCastExprRule, UnaryExprOrTypeTraitExprRule,
+                    UnaryOperatorRule)
     for rule_class in rule_classes:
         rule = rule_class()
-        rule.check_all_rules(tu.cursor)
+        rule.check_all_rules(tree)
         print("errors:")
         for error in rule.errors:
-            print(error.kind.name, error.displayname, error.extent)
+            print(error.kind, error.displayname)
