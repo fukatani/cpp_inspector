@@ -224,6 +224,7 @@ class CStyleCastExprRule(RuleBase):
 class Node(object):
     def __init__(self, line):
         words = line.split()
+        self.scope = None
         self.kind = words[0]
         if self.kind == 'FieldDecl':
             self.displayname = words[-2]
@@ -232,6 +233,13 @@ class Node(object):
             self.displayname = ' '.join(words[-2:])
             self.type = words[-3]
             print(self.displayname, self.type)
+        elif self.kind == 'VarDecl':
+            if 'global_var' in line:
+                self.scope = 'global'
+            else:
+                self.scope = 'local'
+            self.type = re.search(r"'[a-zA-Z\ \*\&]+'", line).group()
+            self.displayname = ' '.join(words[1:])
         else:
             self.displayname = ' '.join(words[1:])
         self.children = []
