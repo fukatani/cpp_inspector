@@ -136,13 +136,18 @@ class GlovalVariableRule(RuleBase):
         self.check_methods.append(self.check_type)
 
     def iter_for_all_element(self, ast):
-        for elem in ast.childs:
-            yield elem
+        for elem in ast.get_children():
+            if elem.kind == 'VarDecl' and elem.scope == 'gloval':
+                yield elem
 
     def check_naming(self, elem):
-        if elem.name[0].upper() == elem.name[0]:
-            self.errors.append(elem)
-        if '_' in elem:
+        if 'const' in elem.type and elem.children[0].kind in ('IntegerLiteral', 'FloatingLiteral'):
+            if elem.kind.upper() == elem.kind:
+                self.errors.append(elem)
+        else:
+            if elem.kind.lower() != elem.kind.lower():
+                self.errors.append(elem)
+        if elem.kind.endswith('_'):
             self.errors.append(elem)
 
     def check_type(self, elem):
@@ -158,11 +163,11 @@ class LocalVarialeRule(RuleBase):
 
     def iter_for_all_element(self, ast):
         for elem in walk_tree(ast):
-            if elem.kind == 'VarDecl':
+            if elem.kind == 'VarDecl' and elem.scope == 'local':
                 yield elem
 
     def check_naming(self, elem):
-        if 'const' and 'constexpr':
+        if 'const' in elem.type and elem.children[0].kind in ('IntegerLiteral', 'FloatingLiteral'):
             if elem.kind.upper() == elem.kind:
                 self.errors.append(elem)
         else:
@@ -279,7 +284,7 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: ./cpp_inspector.py your_code.cpp")
     print(sys.argv[1])
-    # rule_classes = (ClassRule, GlovalVariableRule,
+    # rule_classes = (ClassRule,
     #          LocalVarialeRule)
     command = ("clang", "-Xclang", "-ast-dump", "-fno-diagnostics-color", sys.argv[1])
     try:
@@ -288,8 +293,10 @@ if __name__ == "__main__":
         dump_result = e.output
     tree = make_tree(dump_result.decode())
 
-    rule_classes = (FieldRule, CStyleCastExprRule, UnaryExprOrTypeTraitExprRule,
-                    UnaryOperatorRule)
+    rule_classes = (FieldRule,
+                    CStyleCastExprRule, UnaryExprOrTypeTraitExprRule,
+                    UnaryOperatorRule, LocalVarialeRule, GlovalVariableRule
+                    )
     for rule_class in rule_classes:
         rule = rule_class()
         rule.check_all_rules(tree)
