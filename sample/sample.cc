@@ -10,6 +10,14 @@ class Object {
   int ee = 0;
 };
 
+class dame {
+ public:
+  int FuncU();
+ private:
+  int dd_ = 0;
+};
+
+
 int DekkaiFunc(int a, const double c, const double& d, double* out) {
   return 2;
 }
@@ -29,8 +37,8 @@ int main() {
   }
   for (int i = 0; i < 3; ++i) {
   }
-  int n = NULL;
-  int nn = nullptr;
+  int* n = NULL;
+  int* nn = nullptr;
   int at = sizeof(a);
   int bt = sizeof(int);
   constexpr int con = 9;

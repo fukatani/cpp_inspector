@@ -38,18 +38,22 @@ class ClassRule(RuleBase):
         self.check_methods.append(self.check_naming)
 
     def iter_for_all_element(self, ast):
-        for elem in ast:
-            if 'CXXRecordDecl' in elem:
+        for elem in ast.get_children():
+            if elem.kind == 'CXXRecordDecl':
                 yield elem
 
     def check_data_member_accesibility(self, elem):
-        'AccessSpecDecl' == 'public'
-        "FieldDecl"
+        current_accesibility = 'public'
+        for elem in elem.get_children():
+            if elem.kind == 'AccessSpecDecl':
+                current_accesibility = elem.displayname
+            if elem.kind == "FieldDecl" and current_accesibility == 'public':
+                self.errors.append(elem)
 
     def check_naming(self, elem):
-        if elem.name[0].upper() == elem.name[0]:
+        if elem.displayname[0].upper() != elem.displayname[0]:
             self.errors.append(elem)
-        if '_' in elem:
+        if '_' in elem.displayname:
             self.errors.append(elem)
 
 
@@ -245,6 +249,10 @@ class Node(object):
                 self.scope = 'local'
             self.type = re.search(r"'[a-zA-Z\ \*\&]+'", line).group()
             self.displayname = ' '.join(words[1:])
+        elif self.kind == 'CXXRecordDecl':
+            self.displayname = words[-2]
+        elif self.kind == 'AccessSpecDecl':
+            self.displayname = words[-1].replace("'", "")
         else:
             self.displayname = ' '.join(words[1:])
         self.children = []
@@ -284,8 +292,7 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: ./cpp_inspector.py your_code.cpp")
     print(sys.argv[1])
-    # rule_classes = (ClassRule,
-    #          LocalVarialeRule)
+
     command = ("clang", "-Xclang", "-ast-dump", "-fno-diagnostics-color", sys.argv[1])
     try:
         dump_result = subprocess.check_output(command)#, stderr=subprocess.DEVNULL)
@@ -295,8 +302,8 @@ if __name__ == "__main__":
 
     rule_classes = (FieldRule,
                     CStyleCastExprRule, UnaryExprOrTypeTraitExprRule,
-                    UnaryOperatorRule, LocalVarialeRule, GlovalVariableRule
-                    )
+                    UnaryOperatorRule, LocalVarialeRule, GlovalVariableRule,
+                    ClassRule)
     for rule_class in rule_classes:
         rule = rule_class()
         rule.check_all_rules(tree)
