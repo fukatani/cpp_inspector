@@ -1,6 +1,7 @@
 //#include <memory>
 // #include <stdio.h>
 
+// This is class
 class Object {
  public:
   int FuncU();

@@ -12,6 +12,19 @@ def walk_tree(node):
     yield node
 
 
+class StyleError(object):
+
+    def __init__(self, kind, line, url, contents):
+        self.kind = kind
+        self.line = line
+        self.url = url
+        self.contents = contents
+
+    def to_string(self):
+        return ("line num: %s %s" % self.line % self.kind +
+                " https://google.github.io/styleguide/cppguide.html#%s" % self.url)
+
+
 class RuleBase(object):
 
     def __init__(self):
@@ -48,13 +61,22 @@ class ClassRule(RuleBase):
             if elem.kind == 'AccessSpecDecl':
                 current_accesibility = elem.displayname
             if elem.kind == "FieldDecl" and current_accesibility == 'public':
-                self.errors.append(elem)
+                err = StyleError(elem.line_num, elem.kind,
+                                 "Data member should be private",
+                                 "Access_Control")
+                self.errors.append(err)
 
     def check_naming(self, elem):
         if elem.displayname[0].upper() != elem.displayname[0]:
-            self.errors.append(elem)
+            err = StyleError(elem.line_num, elem.kind,
+                             "Class name should be camel case",
+                             "Type_Names")
+            self.errors.append(err)
         if '_' in elem.displayname:
-            self.errors.append(elem)
+            err = StyleError(elem.line_num, elem.kind,
+                             "Class name should be camel case",
+                             "Type_Names")
+            self.errors.append(err)
 
 
 class FunctionRule(RuleBase):
@@ -73,9 +95,15 @@ class FunctionRule(RuleBase):
 
     def check_naming(self, elem):
         if elem.name[0].upper() == elem.name[0]:
-            self.errors.append(elem)
+            err = StyleError(elem.line_num, elem.kind,
+                             "Class name should be camel case",
+                             "Function_Names")
+            self.errors.append(err)
         if '_' in elem:
-            self.errors.append(elem)
+            err = StyleError(elem.line_num, elem.kind,
+                             "Class name should be camel case",
+                             "Function_Names")
+            self.errors.append(err)
 
     def check_const(self, elem):
         var_list = []
@@ -129,7 +157,10 @@ class FieldRule(RuleBase):
         if elem.displayname.lower() != elem.displayname.lower():
             self.errors.append(elem)
         if not elem.displayname.endswith('_'):
-            self.errors.append(elem)
+            err = StyleError(elem.line_num, elem.kind,
+                             "Data member name should end with '_'",
+                             "Variable_Names")
+            self.errors.append(err)
 
 
 class GlovalVariableRule(RuleBase):
@@ -146,13 +177,22 @@ class GlovalVariableRule(RuleBase):
 
     def check_naming(self, elem):
         if 'const' in elem.type and elem.children[0].kind in ('IntegerLiteral', 'FloatingLiteral'):
-            if elem.kind.upper() == elem.kind:
-                self.errors.append(elem)
+            if elem.kind.upper()[0] != elem.kind[0]:
+                err = StyleError(elem.line_num, elem.kind,
+                                 "Static const variable name should be camel case",
+                                 "Variable_Names")
+                self.errors.append(err)
         else:
             if elem.kind.lower() != elem.kind.lower():
-                self.errors.append(elem)
+                err = StyleError(elem.line_num, elem.kind,
+                                 "Local variable name should be all lowercase",
+                                 "Variable_Names")
+                self.errors.append(err)
         if elem.kind.endswith('_'):
-            self.errors.append(elem)
+            err = StyleError(elem.line_num, elem.kind,
+                             "Local variable name should not end with '_'",
+                             "Variable_Names")
+            self.errors.append(err)
 
     def check_type(self, elem):
         if elem.type not in ('int', 'size_t', 'bool', 'char', 'float', 'double'):
@@ -172,13 +212,22 @@ class LocalVarialeRule(RuleBase):
 
     def check_naming(self, elem):
         if 'const' in elem.type and elem.children[0].kind in ('IntegerLiteral', 'FloatingLiteral'):
-            if elem.kind.upper() == elem.kind:
-                self.errors.append(elem)
+            if elem.kind.upper()[0] != elem.kind[0]:
+                err = StyleError(elem.line_num, elem.kind,
+                                 "Static const variable name should be camel case",
+                                 "Variable_Names")
+                self.errors.append(err)
         else:
             if elem.kind.lower() != elem.kind.lower():
-                self.errors.append(elem)
+                err = StyleError(elem.line_num, elem.kind,
+                                 "Local variable name should be all lowercase",
+                                 "Variable_Names")
+                self.errors.append(err)
         if elem.kind.endswith('_'):
-            self.errors.append(elem)
+            err = StyleError(elem.line_num, elem.kind,
+                             "Local variable name should not end with '_'",
+                             "Variable_Names")
+            self.errors.append(err)
 
 
 class UnaryOperatorRule(RuleBase):
@@ -193,9 +242,12 @@ class UnaryOperatorRule(RuleBase):
                 yield elem
 
     def check_prefix(self, elem):
-        if elem.displayname == "postfix '++'":
+        if elem.displayname == "postfix '++'" or elem.displayname == "postfix '--'":
             if elem.type not in ("'int'", "'size_T'"):
-                self.errors.append(elem)
+                err = StyleError(elem.line_num, elem.kind,
+                                 "Use prefix form (++i) of the increment and decrement operators with iterators and other template objects.",
+                                 "Preincrement_and_Predecrement")
+                self.errors.append(err)
 
 
 class UnaryExprOrTypeTraitExprRule(RuleBase):
@@ -212,8 +264,10 @@ class UnaryExprOrTypeTraitExprRule(RuleBase):
     def check_cast_target(self, elem):
         target = list(elem.get_children())
         if not target:
-            self.errors.append(elem)
-
+            err = StyleError(elem.line_num, elem.kind,
+                             "Prefer sizeof(varname) to sizeof(type)",
+                             "sizeof")
+            self.errors.append(err)
 
 class CStyleCastExprRule(RuleBase):
 
@@ -227,7 +281,10 @@ class CStyleCastExprRule(RuleBase):
                 yield elem
 
     def check_cstylecast(self, elem):
-        self.errors.append(elem)
+        err = StyleError(elem.line_num, elem.kind,
+                         "Use C++ style cast 'static_cast<int>' instead of C style cast '(int)' )",
+                         "Casting")
+        self.errors.append(err)
 
 
 class Node(object):
