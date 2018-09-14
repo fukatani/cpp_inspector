@@ -14,14 +14,14 @@ def walk_tree(node):
 
 class StyleError(object):
 
-    def __init__(self, kind, line, url, contents):
+    def __init__(self, line_num, kind, contents, url):
         self.kind = kind
-        self.line = line
+        self.line_num = line_num
         self.url = url
         self.contents = contents
 
     def to_string(self):
-        return ("line num: %s %s" % self.line % self.kind +
+        return ("line %d: " % self.line_num + self.contents +
                 " https://google.github.io/styleguide/cppguide.html#%s" % self.url)
 
 
@@ -105,6 +105,7 @@ class FunctionRule(RuleBase):
                              "Function_Names")
             self.errors.append(err)
 
+    # TODO: not implemented
     def check_const(self, elem):
         var_list = []
         for elem2 in elem.get_children():
@@ -123,6 +124,7 @@ class FunctionRule(RuleBase):
             if var not in reassignment_list:
                 self.errors.append(var)
 
+    # TODO: not implemented
     def check_arguments(self, elem):
         for parm in elem:
             if 'ParmVarDecl' in parm:
@@ -132,6 +134,7 @@ class FunctionRule(RuleBase):
                 if parm[-1] == '&' and not parm.startswith('const'):
                     self.errors.append(parm)
 
+    # TODO: not implemented.
     def check_arguments_order(self, elem):
         pointer_found = False
         for parm in elem:
@@ -194,9 +197,13 @@ class GlovalVariableRule(RuleBase):
                              "Variable_Names")
             self.errors.append(err)
 
+    # TODO: this is no strict check. struct should be allowed.
     def check_type(self, elem):
         if elem.type not in ('int', 'size_t', 'bool', 'char', 'float', 'double'):
-            self.errors.append(elem)
+            err = StyleError(elem.line_num, elem.kind,
+            "Objects with static storage duration are forbidden",
+            "Static_and_Global_Variables")
+            self.errors.append(err)
 
 
 class LocalVarialeRule(RuleBase):
@@ -300,7 +307,6 @@ class Node(object):
         elif self.kind == 'UnaryOperator':
             self.displayname = ' '.join(words[-2:])
             self.type = words[-3]
-            print(self.displayname, self.type)
         elif self.kind == 'VarDecl':
             if 'global_var' in line:
                 self.scope = 'global'
@@ -374,6 +380,5 @@ if __name__ == "__main__":
     for rule_class in rule_classes:
         rule = rule_class()
         rule.check_all_rules(tree)
-        print("errors:")
         for error in rule.errors:
-            print(error.line_num, error.kind, error.displayname)
+            print(error.to_string())

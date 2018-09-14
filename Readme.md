@@ -42,7 +42,11 @@ git clone https://github.com/fukatani/cpp_inspector.git
 cd cpp_inspector
 python3 ./cpp_inspector/cpp_inspector.py /your_cpp_code.cpp
 
->>> a
+>>> line 11: Data member name should end with '_' https://google.github.io/styleguide/cppguide.html#Variable_Names
+>>> line 34: Use C++ style cast 'static_cast<int>' instead of C style cast '(int)' ) https://google.github.io/styleguide/cppguide.html#Casting
+>>> line 44: Prefer sizeof(varname) to sizeof(type) https://google.github.io/styleguide/cppguide.html#sizeof
+>>> line 8: Data member should be private https://google.github.io/styleguide/cppguide.html#Access_Control
+>>> line 14: Class name should be camel case https://google.github.io/styleguide/cppguide.html#Type_Names
 ```
 
 #### Requirements
