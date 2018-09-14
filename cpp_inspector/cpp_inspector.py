@@ -231,10 +231,12 @@ class CStyleCastExprRule(RuleBase):
 
 
 class Node(object):
-    def __init__(self, line):
+    def __init__(self, line, parent):
+        self.parent = parent
         words = line.split()
         self.scope = None
         self.kind = words[0]
+        self.line_num = None
         if self.kind == 'FieldDecl':
             self.displayname = words[-2]
             self.type = words[-1]
@@ -255,7 +257,14 @@ class Node(object):
             self.displayname = words[-1].replace("'", "")
         else:
             self.displayname = ' '.join(words[1:])
+        # TODO
+        if 'line:' in line:
+            # r"('line:[0-9]*)'"
+            match = re.search(r"line:[0-9]+", line)
+            self.line_num = int(line[match.span()[0] + 5: match.span()[1]])
         self.children = []
+        if self.line_num is None and self.parent is not None:
+            self.line_num = self.parent.line_num
 
     def get_children(self):
         return self.children
@@ -272,7 +281,7 @@ def make_tree(output):
             break
 
     new_tree_ref_dict = {}
-    root = Node(line)
+    root = Node(line, None)
     new_tree_ref_dict[0] = root
     for line in output[line_num + 1:]:
         # print(line)
@@ -282,8 +291,9 @@ def make_tree(output):
             # print(match.start())
             cur_nest = match.start() // 2
             assert cur_nest > 0
-            cur_node = Node(line[match.start():])
-            new_tree_ref_dict[cur_nest - 1].add_children(cur_node)
+            parent = new_tree_ref_dict[cur_nest - 1]
+            cur_node = Node(line[match.start():], parent)
+            parent.add_children(cur_node)
             new_tree_ref_dict[cur_nest] = cur_node
     return root
 
@@ -295,7 +305,7 @@ if __name__ == "__main__":
 
     command = ("clang", "-Xclang", "-ast-dump", "-fno-diagnostics-color", sys.argv[1])
     try:
-        dump_result = subprocess.check_output(command)#, stderr=subprocess.DEVNULL)
+        dump_result = subprocess.check_output(command)
     except subprocess.CalledProcessError as e:
         dump_result = e.output
     tree = make_tree(dump_result.decode())
@@ -309,4 +319,4 @@ if __name__ == "__main__":
         rule.check_all_rules(tree)
         print("errors:")
         for error in rule.errors:
-            print(error.kind, error.displayname)
+            print(error.line_num, error.kind, error.displayname)
