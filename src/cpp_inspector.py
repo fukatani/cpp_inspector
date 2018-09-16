@@ -160,7 +160,7 @@ class FieldRule(RuleBase):
                 yield elem
 
     def check_naming(self, elem):
-        if elem.displayname.lower() != elem.displayname.lower():
+        if elem.displayname.lower() != elem.displayname:
             self.errors.append(elem)
         if not elem.displayname.endswith('_'):
             err = StyleError(elem.line_num, elem.kind,
@@ -255,7 +255,7 @@ class UnaryOperatorRule(RuleBase):
 
     def check_prefix(self, elem):
         if elem.displayname == "postfix '++'" or elem.displayname == "postfix '--'":
-            if elem.type not in ("'int'", "'size_T'"):
+            if elem.type not in ("'int'", "'size_t'"):
                 err = StyleError(elem.line_num, elem.kind,
                                  "Use prefix form (++i) of the increment and decrement operators with iterators and other template objects.",
                                  "Preincrement_and_Predecrement")

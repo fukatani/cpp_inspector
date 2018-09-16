@@ -19,6 +19,12 @@ class TestRule(unittest.TestCase):
         self.assertEqual(errs[1].line_num, 6)
         self.assertEqual(errs[2].line_num, 9)
 
+    def test_field(self):
+        errs = cpp_inspector.inspect(os.path.abspath('./field_rules.cc'))
+        self.assertEqual(errs[0].line_num, 6)
+        self.assertEqual(errs[1].line_num, 7)
+        self.assertEqual(errs[2].line_num, 3)
+
 
 if __name__ == '__main__':
     unittest.main()
