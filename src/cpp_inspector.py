@@ -61,7 +61,7 @@ class ClassRule(RuleBase):
         for elem in elem.get_children():
             if elem.kind == 'AccessSpecDecl':
                 current_accesibility = elem.displayname
-            if elem.kind == "FieldDecl" and current_accesibility == 'public':
+            if elem.kind == "FieldDecl" and current_accesibility != 'private':
                 err = StyleError(elem.line_num, elem.kind,
                                  "Data member should be private",
                                  "Access_Control")
