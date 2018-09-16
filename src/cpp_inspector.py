@@ -217,11 +217,12 @@ class GlobalVariableRule(RuleBase):
             self.errors.append(err)
 
 
-class LocalVarialeRule(RuleBase):
+class LocalVariableRule(RuleBase):
 
     def __init__(self):
         super().__init__()
         self.check_methods.append(self.check_naming)
+        self.check_methods.append(self.check_initialized)
 
     def iter_for_all_element(self, ast):
         for elem in walk_tree(ast):
@@ -400,7 +401,7 @@ def inspect(filename):
 
     rule_classes = (FieldRule, FunctionRule,
                     CStyleCastExprRule, UnaryExprOrTypeTraitExprRule,
-                    UnaryOperatorRule, LocalVarialeRule, GlobalVariableRule,
+                    UnaryOperatorRule, LocalVariableRule, GlobalVariableRule,
                     ClassRule)
 
     errors = []
