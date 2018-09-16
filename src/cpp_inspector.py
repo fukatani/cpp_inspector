@@ -237,6 +237,11 @@ class LocalVariableRule(RuleBase):
                                  "Static const variable name should be like `kConstValue`",
                                  "Variable_Names")
                 self.errors.append(err)
+            if 'constexpr' not in elem.line:
+                err = StyleError(elem.line_num, elem.kind,
+                                 "Use constexpr to define true constants",
+                                 "Use_of_constexpr")
+                self.errors.append(err)
         else:
             if elem.displayname.lower() != elem.displayname:
                 err = StyleError(elem.line_num, elem.kind,
@@ -320,6 +325,7 @@ class Node(object):
         self.scope = None
         self.kind = words[0]
         self.line_num = None
+        self.line = line
         if self.kind == 'FieldDecl':
             self.displayname = words[-2]
             self.type = words[-1]
