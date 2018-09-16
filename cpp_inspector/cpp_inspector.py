@@ -83,7 +83,7 @@ class FunctionRule(RuleBase):
 
     def __init__(self):
         super().__init__()
-        self.check_methods.append(self.check_const)
+        # self.check_methods.append(self.check_const)
         self.check_methods.append(self.check_naming)
         self.check_methods.append(self.check_arguments)
         self.check_methods.append(self.check_arguments_order)
@@ -94,14 +94,14 @@ class FunctionRule(RuleBase):
                 yield elem
 
     def check_naming(self, elem):
-        if elem.name[0].upper() == elem.name[0]:
+        if elem.displayname[0].upper() != elem.displayname[0]:
             err = StyleError(elem.line_num, elem.kind,
-                             "Class name should be camel case",
+                             "Function name should be camel case",
                              "Function_Names")
             self.errors.append(err)
-        if '_' in elem:
+        if '_' in elem.displayname:
             err = StyleError(elem.line_num, elem.kind,
-                             "Class name should be camel case",
+                             "Function name should be camel case",
                              "Function_Names")
             self.errors.append(err)
 
@@ -124,24 +124,26 @@ class FunctionRule(RuleBase):
             if var not in reassignment_list:
                 self.errors.append(var)
 
-    # TODO: not implemented
+    # TODO: move to ParmVarDeclRule
     def check_arguments(self, elem):
-        for parm in elem:
-            if 'ParmVarDecl' in parm:
-                if parm.startswith('const') and parm[-1] != '&' and \
-                        'int' not in parm:
-                    self.errors.append(parm)
-                if parm[-1] == '&' and not parm.startswith('const'):
-                    self.errors.append(parm)
+        for node in elem.get_children():
+            if node.kind == 'ParmVarDecl':
+                if '&' in node.type and 'const' not in node.type:
+                    err = StyleError(elem.line_num, elem.kind,
+                                     "Reference arguments should be called with 'const'",
+                                     "Variable_Names")
+                    self.errors.append(err)
 
-    # TODO: not implemented.
     def check_arguments_order(self, elem):
         pointer_found = False
-        for parm in elem:
-            if 'ParmVarDecl' in parm:
-                if pointer_found and not parm.is_pointer:
-                    self.errors.append(parm)
-                if parm.is_pointer:
+        for node in elem.get_children():
+            if node.kind == 'ParmVarDecl':
+                if pointer_found and not node.is_pointer:
+                    err = StyleError(elem.line_num, elem.kind,
+                                     "Output arguments should be should appear after input parameters",
+                                     "Output_Parameters")
+                    self.errors.append(err)
+                if '*' in node.type:
                     pointer_found = True
 
 
@@ -318,11 +320,19 @@ class Node(object):
             self.displayname = words[-2]
         elif self.kind == 'AccessSpecDecl':
             self.displayname = words[-1].replace("'", "")
+        elif self.kind == 'FunctionDecl':
+            words = line[:line.find("'")].split(' ')
+            self.displayname = words[-2]
+            if self.displayname in ('new', 'delete', 'new[]', 'delete[]'):
+                self.kind = 'NotInspetTarget'
+        elif self.kind == 'ParmVarDecl':
+            self.type = re.search(r"'[a-zA-Z\ \*\&]+'", line).group()
+            words = line[:line.find("'")].split(' ')
+            self.displayname = words[-2]
         else:
             self.displayname = ' '.join(words[1:])
-        # TODO
+
         if 'line:' in line:
-            # r"('line:[0-9]*)'"
             match = re.search(r"line:[0-9]+", line)
             self.line_num = int(line[match.span()[0] + 5: match.span()[1]])
         self.children = []
@@ -373,7 +383,7 @@ if __name__ == "__main__":
         dump_result = e.output
     tree = make_tree(dump_result.decode())
 
-    rule_classes = (FieldRule,
+    rule_classes = (FieldRule, FunctionRule,
                     CStyleCastExprRule, UnaryExprOrTypeTraitExprRule,
                     UnaryOperatorRule, LocalVarialeRule, GlovalVariableRule,
                     ClassRule)
