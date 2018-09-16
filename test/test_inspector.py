@@ -32,6 +32,14 @@ class TestRule(unittest.TestCase):
         self.assertEqual(errs[3].line_num, 12)
         self.assertEqual(errs[4].line_num, 13)
 
+    def test_function_rule(self):
+        errs = cpp_inspector.inspect(os.path.abspath('./function_rules.cc'))
+        self.assertEqual(errs[0].line_num, 5)
+        self.assertEqual(errs[1].line_num, 6)
+        self.assertEqual(errs[2].line_num, 10)
+        self.assertEqual(errs[3].line_num, 14)
+        self.assertEqual(errs[4].line_num, 15)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -91,7 +91,7 @@ class FunctionRule(RuleBase):
 
     def iter_for_all_element(self, ast):
         for elem in walk_tree(ast):
-            if elem.kind == 'FunctionDecl':
+            if elem.kind == 'FunctionDecl' or elem.kind == 'CXXMethodDecl':
                 yield elem
 
     def check_naming(self, elem):
@@ -136,15 +136,19 @@ class FunctionRule(RuleBase):
                     self.errors.append(err)
 
     def check_arguments_order(self, elem):
+
+        def is_pointer_call(node):
+            return '*' in node.type
+
         pointer_found = False
         for node in elem.get_children():
             if node.kind == 'ParmVarDecl':
-                if pointer_found and not node.is_pointer:
+                if pointer_found and not is_pointer_call(node):
                     err = StyleError(elem.line_num, elem.kind,
                                      "Output arguments should be should appear after input parameters",
                                      "Output_Parameters")
                     self.errors.append(err)
-                if '*' in node.type:
+                if is_pointer_call(node):
                     pointer_found = True
 
 
@@ -324,7 +328,7 @@ class Node(object):
             self.displayname = words[-2]
         elif self.kind == 'AccessSpecDecl':
             self.displayname = words[-1].replace("'", "")
-        elif self.kind == 'FunctionDecl':
+        elif self.kind == 'FunctionDecl' or self.kind == 'CXXMethodDecl':
             words = line[:line.find("'")].split(' ')
             self.displayname = words[-2]
             if self.displayname in ('new', 'delete', 'new[]', 'delete[]'):
