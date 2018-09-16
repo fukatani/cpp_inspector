@@ -13,6 +13,10 @@ class TestRule(unittest.TestCase):
         self.assertEqual(errs[4].line_num, 9)
         self.assertEqual(errs[5].line_num, 10)
 
+    def test_valuable_rule2(self):
+        errs = cpp_inspector.inspect(os.path.abspath('./variable_rules2.cc'))
+        self.assertEqual(errs[0].line_num, 4)
+
     def test_other_rule(self):
         errs = cpp_inspector.inspect(os.path.abspath('./other_rules.cc'))
         self.assertEqual(errs[0].line_num, 5)

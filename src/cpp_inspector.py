@@ -6,6 +6,9 @@ import subprocess
 import sys
 
 
+BASIC_DATA_TYPES = ('int', 'size_t', 'bool', 'char', 'float', 'double')
+
+
 def walk_tree(node):
     # print("yield", node.kind, node.displayname)
     for child in node.get_children():
@@ -207,7 +210,7 @@ class GlobalVariableRule(RuleBase):
 
     # TODO: this is no strict check. struct should be allowed.
     def check_type(self, elem):
-        if elem.type not in ('int', 'size_t', 'bool', 'char', 'float', 'double'):
+        if elem.type not in BASIC_DATA_TYPES:
             err = StyleError(elem.line_num, elem.kind,
             "Objects with static storage duration are forbidden",
             "Static_and_Global_Variables")
@@ -245,6 +248,12 @@ class LocalVarialeRule(RuleBase):
                              "Variable_Names")
             self.errors.append(err)
 
+    def check_initialized(self, elem):
+        if not elem.get_children():
+            err = StyleError(elem.line_num, elem.kind,
+                             "Initialization should not separate from declaration.",
+                             "Local_Variables")
+            self.errors.append(err)
 
 class UnaryOperatorRule(RuleBase):
 

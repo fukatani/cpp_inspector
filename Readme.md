@@ -17,8 +17,7 @@ Most rules are based on Google C++ Coding style (https://google.github.io/styleg
 - - Local Variables should be named like `local_variable`.
 - - Class Variables should be named like `class_variable_`.
 - - Disallow class type global variables.
-
-<!-- Variables should be declared with initialized. -->
+- - Variables should be declared with initialized.
 
 <!-- Variables which are assigned once should be `const`. -->
 
@@ -32,7 +31,8 @@ Most rules are based on Google C++ Coding style (https://google.github.io/styleg
 - Other
 - - Disallow cstyle cast.
 - - Disallow sizeof(datatype).
-- - Iteretor should be increment by `++iter`, not `iter++`.
+
+<!-- Iteretor should be increment by `++iter`, not `iter++`. -->
 
 <!-- Raw pointers not should be allocated by new. You should use `std::unique_ptr` or other smart pointer. -->
 
