@@ -9,14 +9,18 @@ Most rules are based on Google C++ Coding style (https://google.github.io/styleg
 - Class
 - - Class name should be camel case.
 - - Data member should be private.
-- - Class methods should be named like `YourClass`, excepts getter/setter.
+- - Datamember name should end with '_'.
+
+<!-- Class methods should be named like `YourClass`, excepts getter/setter. -->
 
 - Variables
-- - Variables which are assigned once should be `const`.
-- - Variables which are assigned once and literal is assigned should be `constexpr`.
 - - Local Variables should be named like `local_variable`.
 - - Class Variables should be named like `class_variable_`.
 - - Disallow class type global variables.
+
+<!-- Variables which are assigned once should be `const`. -->
+
+<!-- Variables which are assigned once and literal is assigned should be `constexpr`. -->
 
 - Functions
 - - Functions should be named like `YourFucntion`.
@@ -27,7 +31,8 @@ Most rules are based on Google C++ Coding style (https://google.github.io/styleg
 - - Disallow cstyle cast.
 - - Disallow sizeof(datatype).
 - - Iteretor should be increment by `++iter`, not `iter++`.
-- - Raw pointers not should be allocated by new. You should use `std::unique_ptr` or other smart pointer.
+
+<!-- Raw pointers not should be allocated by new. You should use `std::unique_ptr` or other smart pointer. -->
 
 
 #### Install
