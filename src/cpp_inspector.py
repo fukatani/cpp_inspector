@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import re
 import subprocess
 import sys
@@ -168,7 +169,7 @@ class FieldRule(RuleBase):
             self.errors.append(err)
 
 
-class GlovalVariableRule(RuleBase):
+class GlobalVariableRule(RuleBase):
 
     def __init__(self):
         super().__init__()
@@ -177,23 +178,24 @@ class GlovalVariableRule(RuleBase):
 
     def iter_for_all_element(self, ast):
         for elem in ast.get_children():
-            if elem.kind == 'VarDecl' and elem.scope == 'gloval':
+            if elem.kind == 'VarDecl' and elem.scope == 'global':
                 yield elem
 
     def check_naming(self, elem):
         if 'const' in elem.type and elem.children[0].kind in ('IntegerLiteral', 'FloatingLiteral'):
-            if elem.kind.upper()[0] != elem.kind[0]:
+            if len(elem.displayname) == 1 or elem.displayname.upper()[1].isupper() or \
+                    elem.displayname.upper()[0] != "k":
                 err = StyleError(elem.line_num, elem.kind,
                                  "Static const variable name should be camel case",
                                  "Variable_Names")
                 self.errors.append(err)
         else:
-            if elem.kind.lower() != elem.kind.lower():
+            if elem.displayname.lower() != elem.displayname.lower():
                 err = StyleError(elem.line_num, elem.kind,
                                  "Local variable name should be all lowercase",
                                  "Variable_Names")
                 self.errors.append(err)
-        if elem.kind.endswith('_'):
+        if elem.displayname.endswith('_'):
             err = StyleError(elem.line_num, elem.kind,
                              "Local variable name should not end with '_'",
                              "Variable_Names")
@@ -221,18 +223,19 @@ class LocalVarialeRule(RuleBase):
 
     def check_naming(self, elem):
         if 'const' in elem.type and elem.children[0].kind in ('IntegerLiteral', 'FloatingLiteral'):
-            if elem.kind.upper()[0] != elem.kind[0]:
+            if len(elem.displayname) == 1 or elem.displayname[1].islower() or \
+                    elem.displayname[0] != "k" or '_' in elem.displayname:
                 err = StyleError(elem.line_num, elem.kind,
-                                 "Static const variable name should be camel case",
+                                 "Static const variable name should be like `kConstValue`",
                                  "Variable_Names")
                 self.errors.append(err)
         else:
-            if elem.kind.lower() != elem.kind.lower():
+            if elem.displayname.lower() != elem.displayname:
                 err = StyleError(elem.line_num, elem.kind,
                                  "Local variable name should be all lowercase",
                                  "Variable_Names")
                 self.errors.append(err)
-        if elem.kind.endswith('_'):
+        if elem.displayname.endswith('_'):
             err = StyleError(elem.line_num, elem.kind,
                              "Local variable name should not end with '_'",
                              "Variable_Names")
@@ -314,8 +317,9 @@ class Node(object):
                 self.scope = 'global'
             else:
                 self.scope = 'local'
-            self.type = re.search(r"'[a-zA-Z\ \*\&]+'", line).group()
-            self.displayname = ' '.join(words[1:])
+            self.type = re.search(r"'[a-zA-Z\ \*\&]+'", line).group().replace("'", "")
+            words = line[:line.find("'")].split(' ')
+            self.displayname = words[-2]
         elif self.kind == 'CXXRecordDecl':
             self.displayname = words[-2]
         elif self.kind == 'AccessSpecDecl':
@@ -371,12 +375,10 @@ def make_tree(output):
     return root
 
 
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: ./cpp_inspector.py your_code.cpp")
-    print(sys.argv[1])
-
-    command = ("clang", "-Xclang", "-ast-dump", "-fno-diagnostics-color", sys.argv[1])
+def inspect(filename):
+    if not os.path.isfile(filename):
+        raise FileNotFoundError("File %s is not found" % filename)
+    command = ("clang", "-Xclang", "-ast-dump", "-fno-diagnostics-color", filename)
     try:
         dump_result = subprocess.check_output(command)
     except subprocess.CalledProcessError as e:
@@ -385,10 +387,20 @@ if __name__ == "__main__":
 
     rule_classes = (FieldRule, FunctionRule,
                     CStyleCastExprRule, UnaryExprOrTypeTraitExprRule,
-                    UnaryOperatorRule, LocalVarialeRule, GlovalVariableRule,
+                    UnaryOperatorRule, LocalVarialeRule, GlobalVariableRule,
                     ClassRule)
+
+    errors = []
     for rule_class in rule_classes:
         rule = rule_class()
         rule.check_all_rules(tree)
         for error in rule.errors:
-            print(error.to_string())
+            errors.append(error)
+    return errors
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: ./cpp_inspector.py your_code.cpp")
+        exit(1)
+    [print(error.to_string()) for error in inspect(sys.argv[1])]

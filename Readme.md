@@ -18,6 +18,8 @@ Most rules are based on Google C++ Coding style (https://google.github.io/styleg
 - - Class Variables should be named like `class_variable_`.
 - - Disallow class type global variables.
 
+<!-- Variables should be declared with initialized. -->
+
 <!-- Variables which are assigned once should be `const`. -->
 
 <!-- Variables which are assigned once and literal is assigned should be `constexpr`. -->
