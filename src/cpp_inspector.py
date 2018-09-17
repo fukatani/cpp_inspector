@@ -325,7 +325,23 @@ class Node(object):
         self.scope = None
         self.kind = words[0]
         self.line_num = None
+        self.file_name = None
         self.line = line
+        match = re.search(r'<[^<>]*>', line)
+        if match:
+            locate_info = match.group(0)[1:-1]
+            for elem in locate_info.split(', '):
+                if elem == 'invalid sloc':
+                    continue
+                else:
+                    locate_kind = elem[:elem.find(':')]
+                    if locate_kind == 'line':
+                        self.line_num = int(elem.split(':')[1])
+                    elif locate_kind == 'col':
+                        self.col_num = int(elem.split(':')[1])
+                    else:
+                        self.file_name = elem.split(':')[0]
+
         if self.kind == 'FieldDecl':
             self.displayname = words[-2]
             self.type = words[-1]
@@ -337,7 +353,7 @@ class Node(object):
                 self.scope = 'global'
             else:
                 self.scope = 'local'
-            self.type = re.search(r"'[a-zA-Z\ \*\&]+'", line).group().replace("'", "")
+            self.type = re.search(r"'[^']+'", line).group().replace("'", "")
             words = line[:line.find("'")].split(' ')
             self.displayname = words[-2]
         elif self.kind == 'CXXRecordDecl':
@@ -348,20 +364,19 @@ class Node(object):
             words = line[:line.find("'")].split(' ')
             self.displayname = words[-2]
             if self.displayname in ('new', 'delete', 'new[]', 'delete[]'):
-                self.kind = 'NotInspetTarget'
+                self.kind = 'NotInspectionTarget'
         elif self.kind == 'ParmVarDecl':
-            self.type = re.search(r"'[a-zA-Z\ \*\&]+'", line).group()
+            self.type = re.search(r"'[^']+'", line).group()
             words = line[:line.find("'")].split(' ')
             self.displayname = words[-2]
         else:
             self.displayname = ' '.join(words[1:])
 
-        if 'line:' in line:
-            match = re.search(r"line:[0-9]+", line)
-            self.line_num = int(line[match.span()[0] + 5: match.span()[1]])
         self.children = []
         if self.line_num is None and self.parent is not None:
             self.line_num = self.parent.line_num
+        if self.file_name is None and self.parent is not None:
+            self.file_name = self.parent.file_name
 
     def get_children(self):
         return self.children
@@ -370,7 +385,7 @@ class Node(object):
         self.children.append(node)
 
 
-def make_tree(output):
+def make_tree(output, input_file):
     output = output.split("\n")
     for i, line in enumerate(output):
         if line.startswith("TranslationUnitDecl"):
@@ -388,8 +403,14 @@ def make_tree(output):
             # print(match.start())
             cur_nest = match.start() // 2
             assert cur_nest > 0
+
+            # skipped line
+            if cur_nest - 1 not in new_tree_ref_dict:
+                continue
             parent = new_tree_ref_dict[cur_nest - 1]
             cur_node = Node(line[match.start():], parent)
+            if cur_node.file_name is not None and cur_node.file_name != input_file:
+                continue
             parent.add_children(cur_node)
             new_tree_ref_dict[cur_nest] = cur_node
     return root
@@ -403,7 +424,7 @@ def inspect(filename):
         dump_result = subprocess.check_output(command)
     except subprocess.CalledProcessError as e:
         dump_result = e.output
-    tree = make_tree(dump_result.decode())
+    tree = make_tree(dump_result.decode(), filename)
 
     rule_classes = (FieldRule, FunctionRule,
                     CStyleCastExprRule, UnaryExprOrTypeTraitExprRule,
