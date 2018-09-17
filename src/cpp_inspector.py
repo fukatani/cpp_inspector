@@ -168,7 +168,10 @@ class FieldRule(RuleBase):
 
     def check_naming(self, elem):
         if elem.displayname.lower() != elem.displayname:
-            self.errors.append(elem)
+            err = StyleError(elem.line_num, elem.kind,
+                             "Data member name should be lower",
+                             "Variable_Names")
+            self.errors.append(err)
         if not elem.displayname.endswith('_'):
             err = StyleError(elem.line_num, elem.kind,
                              "Data member name should end with '_'",
@@ -230,7 +233,7 @@ class LocalVariableRule(RuleBase):
                 yield elem
 
     def check_naming(self, elem):
-        if 'const' in elem.type and elem.children[0].kind in ('IntegerLiteral', 'FloatingLiteral'):
+        if 'const' in elem.type and elem.children and elem.children[0].kind in ('IntegerLiteral', 'FloatingLiteral'):
             if len(elem.displayname) == 1 or elem.displayname[1].islower() or \
                     elem.displayname[0] != "k" or '_' in elem.displayname:
                 err = StyleError(elem.line_num, elem.kind,
@@ -409,8 +412,8 @@ def make_tree(output, input_file):
                 continue
             parent = new_tree_ref_dict[cur_nest - 1]
             cur_node = Node(line[match.start():], parent)
-            if cur_node.file_name is not None and cur_node.file_name != input_file:
-                continue
+            # if cur_node.file_name is not None and cur_node.file_name != input_file:
+            #     continue
             parent.add_children(cur_node)
             new_tree_ref_dict[cur_nest] = cur_node
     return root
