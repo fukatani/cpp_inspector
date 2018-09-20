@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 class Object {
   int bad_access1_ = 0;
  private:

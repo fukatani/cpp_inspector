@@ -387,6 +387,11 @@ class Node(object):
     def add_children(self, node):
         self.children.append(node)
 
+    def print(self):
+        print(self.file_name, self.line_num, self.kind, self.displayname)
+        for child in self.get_children():
+            child.print()
+
 
 def make_tree(output, input_file):
     output = output.split("\n")
@@ -398,6 +403,7 @@ def make_tree(output, input_file):
     new_tree_ref_dict = {}
     root = Node(line, None)
     new_tree_ref_dict[0] = root
+    file_dict = {}
     for line in output[line_num + 1:]:
         # print(line)
         match = re.search(r'[A-Z]+', line)
@@ -412,8 +418,14 @@ def make_tree(output, input_file):
                 continue
             parent = new_tree_ref_dict[cur_nest - 1]
             cur_node = Node(line[match.start():], parent)
-            # if cur_node.file_name is not None and cur_node.file_name != input_file:
-            #     continue
+
+            if cur_node.file_name is not None:
+                file_dict[cur_nest] = cur_node.file_name
+            elif cur_nest in file_dict:
+                cur_node.file_name = file_dict[cur_nest]
+
+            if cur_node.file_name is None or cur_node.file_name != input_file:
+                continue
             parent.add_children(cur_node)
             new_tree_ref_dict[cur_nest] = cur_node
     return root
@@ -428,6 +440,7 @@ def inspect(filename):
     except subprocess.CalledProcessError as e:
         dump_result = e.output
     tree = make_tree(dump_result.decode(), filename)
+    # tree.print()
 
     rule_classes = (FieldRule, FunctionRule,
                     CStyleCastExprRule, UnaryExprOrTypeTraitExprRule,
