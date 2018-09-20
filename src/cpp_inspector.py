@@ -431,7 +431,7 @@ def make_tree(output, input_file):
     return root
 
 
-def inspect(filename):
+def inspect(filename, print_tree=False):
     if not os.path.isfile(filename):
         raise FileNotFoundError("File %s is not found" % filename)
     command = ("clang", "-Xclang", "-ast-dump", "-fno-diagnostics-color", filename)
@@ -440,7 +440,8 @@ def inspect(filename):
     except subprocess.CalledProcessError as e:
         dump_result = e.output
     tree = make_tree(dump_result.decode(), filename)
-    # tree.print()
+    if print_tree:
+        tree.print()
 
     rule_classes = (FieldRule, FunctionRule,
                     CStyleCastExprRule, UnaryExprOrTypeTraitExprRule,

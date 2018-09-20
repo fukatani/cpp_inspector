@@ -23,7 +23,7 @@ Most rules are based on Google C++ Coding style (https://google.github.io/styleg
 <!-- Variables which are assigned once should be `const`. -->
 
 - Functions
-- - Functions should be named like `YourFucntion`.
+- - Functions should be named like `YourFunction`.
 - - Reference arguments should be `const`.
 - - Output arguments should be located last.
 
@@ -58,26 +58,5 @@ python3 ./cpp_inspector/cpp_inspector.py /your_cpp_code.cpp
 #### Requirements
 
 - Python 3.4 or later
-- Clang with python bindings
-
-You can install clang python bindings as follows.
-
-```
-sudo apt-get install subversion
-svn co http://llvm.org/svn/llvm-project/llvm/trunk llvm
-cd llvm/tools
-svn co http://llvm.org/svn/llvm-project/cfe/trunk clang
-svn co http://llvm.org/svn/llvm-project/clang-tools-extra/trunk extra
-cd ../..
-mkdir build
-cd build
-cmake -G "Unix Makefiles" ../llvm
-make
-```
-
-Also you need set PYTHONPATH.
-
-```
-export PYTHONPATH=$PYTHONPATH:/path/to/clang/python
-```
+- Clang 8.0
 
